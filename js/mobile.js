@@ -94,6 +94,34 @@
     catch (e) { return '/k/v1/file.json'; }
   }
 
+  // 添付ファイルをダウンロードする。
+  // /k/v1/file.json はセッション認証に X-Requested-With ヘッダーが必須のため、
+  // 単純な<a href>では不可。fetchでBlob取得してから保存する(公式の手順)。
+  function downloadFile(fileKey, name) {
+    var url = fileBaseUrl() + '?fileKey=' + encodeURIComponent(fileKey);
+    fetch(url, {
+      method: 'GET',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      credentials: 'same-origin'
+    }).then(function (resp) {
+      if (!resp.ok) { throw new Error('HTTP ' + resp.status); }
+      return resp.blob();
+    }).then(function (blob) {
+      var urlApi = window.URL || window.webkitURL;
+      var objUrl = urlApi.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = objUrl;
+      a.download = name || 'download';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { urlApi.revokeObjectURL(objUrl); }, 10000);
+    }).catch(function (e) {
+      console.error('[モバイル表形式] ファイルダウンロード失敗', e);
+      window.alert('ファイルのダウンロードに失敗しました。');
+    });
+  }
+
   function isEmptyValue(field) {
     var v = field.value;
     return v == null || v === '' || (Array.isArray(v) && v.length === 0);
@@ -153,14 +181,16 @@
     }
 
     if (t === 'FILE' && Array.isArray(v)) {
-      var base = fileBaseUrl();
       v.forEach(function (f, i) {
         if (i > 0) { container.appendChild(el('br')); }
         if (f && f.fileKey) {
-          var fa = el('a', 'kxc-link', f.name);
-          fa.href = base + '?fileKey=' + encodeURIComponent(f.fileKey);
-          fa.target = '_blank';
-          fa.rel = 'noopener noreferrer';
+          var fa = el('a', 'kxc-link kxc-file', f.name);
+          fa.href = '#';
+          fa.setAttribute('role', 'button');
+          fa.addEventListener('click', function (ev) {
+            ev.preventDefault();
+            downloadFile(f.fileKey, f.name);
+          });
           container.appendChild(fa);
         } else {
           container.appendChild(document.createTextNode((f && f.name) || ''));
@@ -228,6 +258,8 @@
       '.kxc-c--text,.kxc-c--head{white-space:normal;word-break:break-word;max-width:var(--kxc-wrap,46vw);}' +
       '.kxc-c--empty{color:#c0c8ce;}' +
       '.kxc-link{color:#3498db;text-decoration:underline;word-break:break-all;}' +
+      '.kxc-file{cursor:pointer;}' +
+      '.kxc-file::before{content:"\\1F4CE ";text-decoration:none;}' +
 
       /* オプション: ヘッダー行固定 */
       '.kxc-stickyhead thead th{position:sticky;top:0;z-index:2;}' +

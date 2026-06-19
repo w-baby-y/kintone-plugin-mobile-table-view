@@ -1,6 +1,6 @@
 {
   "name": "kintone-mobile-table-view-plugin",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "kintoneのモバイル詳細(閲覧)画面で、サブテーブルを見やすい表形式で表示するプラグイン",
   "license": "MIT",
   "keywords": [
