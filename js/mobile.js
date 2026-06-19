@@ -33,8 +33,10 @@
   function formatNumeric(raw, type, fmt) {
     if (raw === '' || raw == null) { return ''; }
     fmt = fmt || {};
-    // CALCの日付/時刻系はそのまま表示
-    if (type === 'CALC' && CALC_DATELIKE[fmt.format]) { return String(raw); }
+    // CALCの日付/時刻系は数値整形しない(日時のみローカル整形、それ以外はそのまま)
+    if (type === 'CALC' && CALC_DATELIKE[fmt.format]) {
+      return (fmt.format === 'DATETIME') ? formatDateTime(raw) : String(raw);
+    }
     var n = Number(raw);
     if (isNaN(n)) { return String(raw); }
 
@@ -53,6 +55,45 @@
     return s;
   }
 
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+
+  // 日時(UTCのISO文字列)を端末ローカルの "YYYY-MM-DD HH:mm" に整形する
+  function formatDateTime(raw) {
+    if (raw == null || raw === '') { return ''; }
+    var d = new Date(raw);
+    if (isNaN(d.getTime())) { return String(raw); }
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) +
+      ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  }
+
+  // リッチエディター(HTML文字列)をプレーンテキスト化する。
+  // DOMParserはスクリプト実行や外部リソース取得を行わないため安全。
+  function richToText(html) {
+    var s = String(html);
+    try {
+      var doc = new DOMParser().parseFromString(s, 'text/html');
+      return (doc && doc.body) ? (doc.body.textContent || '') : s;
+    } catch (e) {
+      return s.replace(/<[^>]*>/g, '');
+    }
+  }
+
+  // リンク値から安全なhref文字列を生成する(javascript:等の危険スキームは無効化)
+  function linkHref(value) {
+    var s = String(value).trim();
+    if (/^(https?|ftp|mailto|tel):/i.test(s)) { return s; }                 // 安全なスキームはそのまま
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)) { return 'mailto:' + s; }      // メールアドレス
+    if (/^[+\d][\d\-() ]{5,}$/.test(s)) { return 'tel:' + s.replace(/[^\d+]/g, ''); } // 電話番号
+    // スキーム無し or 不明スキームはWebとしてhttps補完(危険スキームはここで除去される)
+    return 'https://' + s.replace(/^[a-z][a-z0-9+.\-]*:\/*/i, '');
+  }
+
+  // 添付ファイルのダウンロードURL(ゲストスペース対応)
+  function fileBaseUrl() {
+    try { return kintone.api.url('/k/v1/file.json', true); }
+    catch (e) { return '/k/v1/file.json'; }
+  }
+
   function isEmptyValue(field) {
     var v = field.value;
     return v == null || v === '' || (Array.isArray(v) && v.length === 0);
@@ -66,6 +107,10 @@
       case 'NUMBER':
       case 'CALC':
         return formatNumeric(v, t, fmt);
+      case 'DATETIME':
+        return formatDateTime(v);
+      case 'RICH_TEXT':
+        return richToText(v);
       case 'CHECK_BOX':
       case 'MULTI_SELECT':
       case 'CATEGORY':
@@ -73,12 +118,58 @@
       case 'USER_SELECT':
       case 'ORGANIZATION_SELECT':
       case 'GROUP_SELECT':
+      case 'STATUS_ASSIGNEE':
         return Array.isArray(v) ? v.map(function (o) { return o.name; }).join('、') : String(v);
+      case 'CREATOR':
+      case 'MODIFIER':
+        return (v && v.name) ? v.name : String(v);
       case 'FILE':
         return Array.isArray(v) ? v.map(function (o) { return o.name; }).join('、') : String(v);
       default:
         return String(v);
     }
+  }
+
+  // セル内容をDOMで構築する(リンク/添付ファイル/複数行はテキスト以外の描画が必要)
+  function fillCell(container, field, fmt) {
+    var t = field.type;
+    var v = field.value;
+
+    if (t === 'MULTI_LINE_TEXT') {
+      String(v).split('\n').forEach(function (line, i) {
+        if (i > 0) { container.appendChild(el('br')); }
+        container.appendChild(document.createTextNode(line));
+      });
+      return;
+    }
+
+    if (t === 'LINK') {
+      var a = el('a', 'kxc-link', String(v));
+      a.href = linkHref(v);
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      container.appendChild(a);
+      return;
+    }
+
+    if (t === 'FILE' && Array.isArray(v)) {
+      var base = fileBaseUrl();
+      v.forEach(function (f, i) {
+        if (i > 0) { container.appendChild(el('br')); }
+        if (f && f.fileKey) {
+          var fa = el('a', 'kxc-link', f.name);
+          fa.href = base + '?fileKey=' + encodeURIComponent(f.fileKey);
+          fa.target = '_blank';
+          fa.rel = 'noopener noreferrer';
+          container.appendChild(fa);
+        } else {
+          container.appendChild(document.createTextNode((f && f.name) || ''));
+        }
+      });
+      return;
+    }
+
+    container.textContent = formatValue(field, fmt);
   }
 
   // レコード内の全サブテーブル(レコードのキー順)
@@ -136,6 +227,7 @@
       '.kxc-c--num{white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums;}' +
       '.kxc-c--text,.kxc-c--head{white-space:normal;word-break:break-word;max-width:var(--kxc-wrap,46vw);}' +
       '.kxc-c--empty{color:#c0c8ce;}' +
+      '.kxc-link{color:#3498db;text-decoration:underline;word-break:break-all;}' +
 
       /* オプション: ヘッダー行固定 */
       '.kxc-stickyhead thead th{position:sticky;top:0;z-index:2;}' +
@@ -244,7 +336,10 @@
         var field = row.value[code];
         var empty = !field || isEmptyValue(field);
         var cls = 'kxc-c kxc-c--' + colKind(code, ci) + (empty ? ' kxc-c--empty' : '');
-        td.appendChild(el('div', cls, empty ? '—' : formatValue(field, formats[code])));
+        var div = el('div', cls);
+        if (empty) { div.textContent = '—'; }
+        else { fillCell(div, field, formats[code]); }
+        td.appendChild(div);
         tr.appendChild(td);
       });
       tbody.appendChild(tr);
