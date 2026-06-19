@@ -1,0 +1,21 @@
+# 依存パッケージ
+node_modules/
+
+# ビルド成果物（配布は GitHub Releases などで行う）
+dist/
+*.zip
+
+# ★ プラグイン署名用の秘密鍵：絶対に公開リポジトリへ含めないこと
+# （流出すると第三者が同一プラグインIDで更新版を発行できてしまう）
+*.ppk
+
+# アイコンの元画像・バックアップ（配布物には不要）
+image/icon2.png
+image/*.bak
+
+# OS / エディタ
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/

@@ -1,0 +1,40 @@
+.kxc-settings {
+  max-width: 760px;
+  margin: 16px;
+  color: #1f2933;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.kxc-h2 { font-size: 20px; margin: 0 0 4px; }
+.kxc-h3 { font-size: 16px; margin: 24px 0 8px; padding-bottom: 4px; border-bottom: 2px solid #e3e7ea; }
+.kxc-desc { color: #52606d; margin: 0 0 16px; }
+.kxc-note { color: #7b8794; font-size: 12px; margin: 8px 0 0; }
+.kxc-subhead { font-size: 12px; color: #52606d; margin: 10px 0 6px; }
+
+.kxc-row { margin: 8px 0; }
+.kxc-label { font-weight: 600; }
+.kxc-select { padding: 4px 8px; font-size: 14px; }
+
+.kxc-tbl {
+  border: 1px solid #d8e0e6;
+  border-radius: 8px;
+  padding: 10px 14px 14px;
+  margin: 0 0 14px;
+}
+.kxc-tbl > legend { font-weight: 700; color: #2c3e50; padding: 0 6px; }
+.kxc-wrap { width: 5em; margin-left: 6px; padding: 2px 4px; }
+
+.kxc-cols { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.kxc-col { display: inline-flex; align-items: center; min-width: 30%; }
+
+.kxc-actions { margin: 24px 0; display: flex; gap: 10px; }
+.kxc-btn {
+  padding: 8px 20px;
+  font-size: 14px;
+  border: 1px solid #c1c8cf;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+.kxc-btn--primary { background: #3498db; border-color: #3498db; color: #fff; font-weight: 700; }
+.kxc-btn:hover { opacity: .9; }

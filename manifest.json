@@ -1,0 +1,28 @@
+{
+  "manifest_version": 1,
+  "version": 1,
+  "type": "APP",
+  "name": {
+    "ja": "モバイル表形式表示",
+    "en": "Mobile Table View"
+  },
+  "description": {
+    "ja": "モバイルの詳細画面で、選択したテーブルを見やすい表形式で表示します。",
+    "en": "Renders selected subtables as a readable table on kintone mobile record (detail) screens."
+  },
+  "icon": "image/icon.png",
+  "homepage_url": {
+    "ja": "https://ssw.sankou1.com/",
+    "en": "https://ssw.sankou1.com/"
+  },
+  "mobile": {
+    "js": ["js/mobile.js"],
+    "css": []
+  },
+  "config": {
+    "html": "config.html",
+    "js": ["js/config.js"],
+    "css": ["css/config.css"],
+    "required_params": []
+  }
+}
